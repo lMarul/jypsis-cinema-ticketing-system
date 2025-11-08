@@ -39,7 +39,6 @@ export const Navbar = () => {
                 isHome ? "text-primary" : "text-muted-foreground"
               }`}
             >
-              Movies
             </Link>
           </div>
 
