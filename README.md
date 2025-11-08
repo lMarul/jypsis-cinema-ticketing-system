@@ -1,5 +1,31 @@
 # Welcome to your Lovable project
 
+## 🤖 Agentic AI Feature (Hackathon Requirement)
+
+This project features a **truly agentic AI chatbot** that autonomously navigates the app and performs actions based on natural language commands.
+
+**Try these commands:**
+- "Show me action movies"
+- "Take me to Inside Out 2"
+- "Find the next screening at SM Makati"
+- "Book 2 VIP seats for the 8PM show"
+
+The AI doesn't just respond—it **takes action** by navigating pages, filtering content, and helping you book tickets!
+
+📖 **[Read full Agentic AI Documentation](./AGENTIC_AI.md)**
+
+### Quick Setup for AI
+
+1. Get OpenAI API key: https://platform.openai.com/api-keys
+2. Copy `.env.example` to `.env`
+3. Add your API key:
+   ```env
+   VITE_OPENAI_API_KEY="sk-your-key-here"
+   ```
+4. Run `npm run dev`
+
+---
+
 ## Project info
 
 **URL**: https://lovable.dev/projects/7106a5b8-4bb0-4a91-8f8a-8b749673de8c

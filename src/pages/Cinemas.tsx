@@ -1,41 +1,27 @@
+import { useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { ArrowLeft, MapPin, Clock } from "lucide-react";
 import { AIChatbot } from "@/components/AIChatbot";
-
-// Mock cinema data
-const cinemas = [
-  {
-    id: 1,
-    name: "SM Makati Cinema",
-    distance: "2.5 km",
-    location: "Makati City",
-    showtimes: ["10:00 AM", "1:30 PM", "4:00 PM", "7:30 PM", "10:00 PM"],
-    tiers: ["Regular", "Premium", "VIP"]
-  },
-  {
-    id: 2,
-    name: "Ayala Malls Cinema",
-    distance: "3.8 km",
-    location: "Makati City",
-    showtimes: ["11:00 AM", "2:00 PM", "5:00 PM", "8:00 PM"],
-    tiers: ["Regular", "Premium"]
-  },
-  {
-    id: 3,
-    name: "Glorietta Cineplex",
-    distance: "4.2 km",
-    location: "Makati City",
-    showtimes: ["12:00 PM", "3:30 PM", "6:30 PM", "9:30 PM"],
-    tiers: ["Regular", "IMAX", "4DX"]
-  }
-];
+import { MOCK_CINEMAS } from "@/data/mockData";
+import { useAIContext } from "@/contexts/AIContext";
 
 const Cinemas = () => {
   const { movieId } = useParams();
   const navigate = useNavigate();
+  const { setCurrentMovieId, setCurrentCinemaId } = useAIContext();
+
+  // Update AI context
+  useEffect(() => {
+    if (movieId) {
+      setCurrentMovieId(parseInt(movieId));
+    }
+    return () => {
+      setCurrentCinemaId(undefined);
+    };
+  }, [movieId, setCurrentMovieId, setCurrentCinemaId]);
 
   const handleSelectShowtime = (cinemaId: number, time: string) => {
     navigate(`/seats/${movieId}/${cinemaId}?time=${encodeURIComponent(time)}`);
@@ -73,7 +59,7 @@ const Cinemas = () => {
       {/* Cinemas List */}
       <div className="container mx-auto px-6 py-12">
         <div className="space-y-6">
-          {cinemas.map((cinema) => (
+          {MOCK_CINEMAS.map((cinema) => (
             <Card key={cinema.id} className="p-6 bg-card border-border shadow-card">
               <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-4">
                 <div>
