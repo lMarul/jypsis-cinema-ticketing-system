@@ -1,9 +1,10 @@
 import { useState, useRef, useEffect } from "react";
+import { motion, AnimatePresence } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card } from "@/components/ui/card";
 import { MessageCircle, X, Send, Sparkles } from "lucide-react";
-import { supabase } from "@/integrations/supabase/client";
+// supabase integration removed for local/dev mode to prevent runtime errors
 import { toast } from "sonner";
 
 interface Message {
@@ -40,24 +41,13 @@ export const AIChatbot = () => {
     setIsLoading(true);
 
     try {
-      const { data, error } = await supabase.functions.invoke("cinema-chat", {
-        body: { messages: [...messages, userMessage] }
-      });
-
-      if (error) {
-        if (error.message?.includes("429")) {
-          toast.error("Rate limit exceeded. Please try again in a moment.");
-        } else if (error.message?.includes("402")) {
-          toast.error("AI service requires credits. Please contact support.");
-        } else {
-          throw error;
-        }
-        return;
-      }
-
+      // Movie API / Supabase functions are disabled in this local/dev build.
+      // Return a mocked assistant response to keep the UI functional.
+      await new Promise((res) => setTimeout(res, 700));
       const assistantMessage: Message = {
         role: "assistant",
-        content: data.response
+        content:
+          "The movie API is currently disabled in this environment. I can still help with general questions about the app or mock results. Try asking for genres or movie recommendations."
       };
       setMessages(prev => [...prev, assistantMessage]);
     } catch (error) {
@@ -70,20 +60,40 @@ export const AIChatbot = () => {
 
   return (
     <>
-      {/* Floating Button */}
+      {/* Floating Action Button (FAB) */}
       {!isOpen && (
-        <Button
-          onClick={() => setIsOpen(true)}
-          size="lg"
-          className="fixed bottom-6 right-6 rounded-full w-16 h-16 shadow-glow bg-primary hover:bg-primary-hover z-50"
+        <motion.div
+          initial={{ scale: 0 }}
+          animate={{ scale: 1 }}
+          whileHover={{ scale: 1.1 }}
+          whileTap={{ scale: 0.95 }}
+          className="fixed bottom-6 right-6 z-50"
         >
-          <MessageCircle className="w-6 h-6" />
-        </Button>
+          <Button
+            onClick={() => setIsOpen(true)}
+            size="lg"
+            className="rounded-full w-16 h-16 shadow-2xl shadow-primary/50 bg-primary hover:bg-primary-hover text-primary-foreground"
+          >
+            <MessageCircle className="w-6 h-6" />
+          </Button>
+          <motion.div
+            className="absolute inset-0 rounded-full bg-primary/20 blur-xl -z-10"
+            animate={{ scale: [1, 1.2, 1] }}
+            transition={{ duration: 2, repeat: Infinity }}
+          />
+        </motion.div>
       )}
 
       {/* Chat Window */}
-      {isOpen && (
-        <Card className="fixed bottom-6 right-6 w-96 h-[600px] shadow-card bg-card border-border z-50 flex flex-col">
+      <AnimatePresence>
+        {isOpen && (
+          <motion.div
+            initial={{ opacity: 0, scale: 0.8, y: 20 }}
+            animate={{ opacity: 1, scale: 1, y: 0 }}
+            exit={{ opacity: 0, scale: 0.8, y: 20 }}
+            transition={{ type: "spring", damping: 25, stiffness: 300 }}
+          >
+            <Card className="fixed bottom-6 right-6 w-96 h-[600px] shadow-2xl bg-card border-border z-50 flex flex-col">
           {/* Header */}
           <div className="flex items-center justify-between p-4 border-b border-border gradient-cinema">
             <div className="flex items-center gap-2">
@@ -152,9 +162,11 @@ export const AIChatbot = () => {
                 <Send className="w-4 h-4" />
               </Button>
             </div>
-          </div>
-        </Card>
-      )}
+            </div>
+            </Card>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </>
   );
 };
