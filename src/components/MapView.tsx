@@ -1,5 +1,5 @@
-import React from "react";
-import { GoogleMap, LoadScript, Marker } from "@react-google-maps/api";
+import React, { useCallback, useEffect, useRef, useState } from "react";
+import { GoogleMap, useJsApiLoader, Marker, InfoWindow } from "@react-google-maps/api";
 
 interface Cinema {
   id: number;
@@ -11,6 +11,7 @@ interface Cinema {
 interface MapViewProps {
   cinemas: Cinema[];
   onMarkerClick?: (id: number) => void;
+  selectedId?: number;
 }
 
 const mapContainerStyle = {
@@ -25,13 +26,60 @@ const MapView: React.FC<MapViewProps> = ({ cinemas, onMarkerClick }) => {
     ? { lat: cinemas[0].lat as number, lng: cinemas[0].lng as number }
     : { lat: 14.5547, lng: 121.0244 }; // default to Metro Manila
 
-  if (apiKey) {
+  const { isLoaded, loadError } = useJsApiLoader({
+    googleMapsApiKey: apiKey || "",
+  });
+
+  const mapRef = useRef<any>(null);
+  const [activeId, setActiveId] = useState<number | null>(null);
+
+  const onLoad = useCallback((map: any) => {
+    mapRef.current = map;
+  }, []);
+
+  // Fit map to all markers
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map || !cinemas || cinemas.length === 0) return;
+
+    const googleObj = (window as any).google;
+    let bounds: any = null;
+    if (googleObj && googleObj.maps && typeof googleObj.maps.LatLngBounds === 'function') {
+      bounds = new googleObj.maps.LatLngBounds();
+    }
+
+    let hasCoords = false;
+    cinemas.forEach((c) => {
+      if (c.lat && c.lng && bounds) {
+        bounds.extend({ lat: c.lat as number, lng: c.lng as number });
+        hasCoords = true;
+      }
+    });
+
+    if (hasCoords && bounds) {
+      try {
+        map.fitBounds(bounds);
+      } catch (e) {
+        // ignore
+      }
+    } else {
+      map.setCenter(defaultCenter);
+      map.setZoom(12);
+    }
+  }, [cinemas, isLoaded]);
+
+  if (apiKey && !loadError) {
+    if (!isLoaded) {
+      return <div className="h-full w-full">Loading map...</div>;
+    }
+
     return (
-      <LoadScript googleMapsApiKey={apiKey}>
+      <div className="h-full w-full">
         <GoogleMap
           mapContainerStyle={mapContainerStyle}
           center={defaultCenter}
           zoom={12}
+          onLoad={onLoad}
         >
           {cinemas.map((c) =>
             c.lat && c.lng ? (
@@ -39,12 +87,35 @@ const MapView: React.FC<MapViewProps> = ({ cinemas, onMarkerClick }) => {
                 key={c.id}
                 position={{ lat: c.lat as number, lng: c.lng as number }}
                 title={c.name}
-                onClick={() => onMarkerClick?.(c.id)}
+                onClick={() => {
+                  setActiveId(c.id);
+                  onMarkerClick?.(c.id);
+                }}
+                icon={
+                  c.id === activeId
+                    ? undefined
+                    : undefined
+                }
               />
             ) : null
           )}
+
+          {activeId != null && (() => {
+            const cinema = cinemas.find(c => c.id === activeId);
+            if (!cinema || !cinema.lat || !cinema.lng) return null;
+            return (
+              <InfoWindow
+                position={{ lat: cinema.lat as number, lng: cinema.lng as number }}
+                onCloseClick={() => setActiveId(null)}
+              >
+                <div className="max-w-xs">
+                  <strong>{cinema.name}</strong>
+                </div>
+              </InfoWindow>
+            );
+          })()}
         </GoogleMap>
-      </LoadScript>
+      </div>
     );
   }
 
