@@ -27,7 +27,7 @@ export const Navbar = () => {
               />
             </div>
             <span className="text-xl font-display font-bold bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent">
-              CinemaBook
+              JYPTIC
             </span>
           </Link>
 
@@ -39,7 +39,6 @@ export const Navbar = () => {
                 isHome ? "text-primary" : "text-muted-foreground"
               }`}
             >
-              Movies
             </Link>
           </div>
 
