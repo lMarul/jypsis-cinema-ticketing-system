@@ -1,22 +1,29 @@
 import { useState, useRef, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card } from "@/components/ui/card";
-import { MessageCircle, X, Send, Sparkles } from "lucide-react";
-import { supabase } from "@/integrations/supabase/client";
+import { Badge } from "@/components/ui/badge";
+import { MessageCircle, X, Send, Sparkles, Zap, CheckCircle } from "lucide-react";
 import { toast } from "sonner";
+import { callOpenAI, executeActions, AIAction } from "@/services/aiAgent";
+import { useAIContext } from "@/contexts/AIContext";
 
 interface Message {
   role: "user" | "assistant";
   content: string;
+  actions?: AIAction[];
+  actionResults?: string[];
 }
 
 export const AIChatbot = () => {
+  const navigate = useNavigate();
+  const aiContext = useAIContext();
   const [isOpen, setIsOpen] = useState(false);
   const [messages, setMessages] = useState<Message[]>([
     {
       role: "assistant",
-      content: "Hi! I'm your cinema assistant. I can help you find movies, locate cinemas, book tickets, or answer any questions. Try asking me something like 'Show me action movies' or 'Find Inside Out 2 near me'!"
+      content: "Hi! I'm **QELV** (Queue Entertainment Liaison Virtual assistant) - your agentic cinema companion! 🎬\n\nI don't just answer questions—I take action! Try:\n• \"Show me action movies\"\n• \"Take me to Inside Out 2\"\n• \"Find the next screening at SM Makati\"\n• \"Book 2 VIP seats for the 8PM show\"\n\nI'll navigate the app for you! 🚀"
     }
   ]);
   const [input, setInput] = useState("");
@@ -40,29 +47,55 @@ export const AIChatbot = () => {
     setIsLoading(true);
 
     try {
-      const { data, error } = await supabase.functions.invoke("cinema-chat", {
-        body: { messages: [...messages, userMessage] }
-      });
+      // Call OpenAI with function calling
+      const { response, actions } = await callOpenAI(
+        [...messages, userMessage].map(m => ({ role: m.role, content: m.content })),
+        aiContext
+      );
 
-      if (error) {
-        if (error.message?.includes("429")) {
-          toast.error("Rate limit exceeded. Please try again in a moment.");
-        } else if (error.message?.includes("402")) {
-          toast.error("AI service requires credits. Please contact support.");
-        } else {
-          throw error;
-        }
-        return;
+      // Execute actions if any
+      let actionResults: string[] = [];
+      if (actions.length > 0) {
+        actionResults = await executeActions(
+          actions,
+          navigate,
+          aiContext,
+          {} // We'll add setters when needed
+        );
+        
+        // Show action feedback
+        toast.success(`Action: ${actions[0].type}`, {
+          description: actionResults[0],
+          icon: <Zap className="w-4 h-4" />
+        });
       }
 
       const assistantMessage: Message = {
         role: "assistant",
-        content: data.response
+        content: response,
+        actions,
+        actionResults
       };
+      
       setMessages(prev => [...prev, assistantMessage]);
-    } catch (error) {
-      console.error("Chat error:", error);
-      toast.error("Failed to get response. Please try again.");
+    } catch (error: any) {
+      console.error("AI error:", error);
+      
+      if (error.message?.includes("API key not configured")) {
+        toast.error("AI Not Configured", {
+          description: "Please add VITE_GEMINI_API_KEY to your .env file"
+        });
+      } else if (error.message?.includes("429")) {
+        toast.error("Rate limit exceeded. Please try again in a moment.");
+      } else {
+        toast.error("Failed to process request. Please try again.");
+      }
+      
+      // Add error message to chat
+      setMessages(prev => [...prev, {
+        role: "assistant",
+        content: "I'm having trouble processing that request. Please make sure the AI service is configured correctly."
+      }]);
     } finally {
       setIsLoading(false);
     }
@@ -88,7 +121,7 @@ export const AIChatbot = () => {
           <div className="flex items-center justify-between p-4 border-b border-border gradient-cinema">
             <div className="flex items-center gap-2">
               <Sparkles className="w-5 h-5" />
-              <h3 className="font-display font-bold">Cinema AI Assistant</h3>
+              <h3 className="font-display font-bold">QELV AI Assistant</h3>
             </div>
             <Button
               variant="ghost"
@@ -105,7 +138,7 @@ export const AIChatbot = () => {
             {messages.map((message, index) => (
               <div
                 key={index}
-                className={`flex ${message.role === "user" ? "justify-end" : "justify-start"}`}
+                className={`flex flex-col ${message.role === "user" ? "items-end" : "items-start"}`}
               >
                 <div
                   className={`max-w-[80%] rounded-lg p-3 ${
@@ -114,8 +147,20 @@ export const AIChatbot = () => {
                       : "bg-muted text-foreground"
                   }`}
                 >
-                  <p className="text-sm leading-relaxed">{message.content}</p>
+                  <p className="text-sm leading-relaxed whitespace-pre-line">{message.content}</p>
                 </div>
+                
+                {/* Show actions taken */}
+                {message.actions && message.actions.length > 0 && (
+                  <div className="mt-2 flex flex-wrap gap-2">
+                    {message.actions.map((action, idx) => (
+                      <Badge key={idx} variant="secondary" className="flex items-center gap-1">
+                        <CheckCircle className="w-3 h-3" />
+                        <span className="text-xs capitalize">{action.type.replace(/_/g, ' ')}</span>
+                      </Badge>
+                    ))}
+                  </div>
+                )}
               </div>
             ))}
             {isLoading && (
