@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useParams, useNavigate, useSearchParams } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import { Button } from "@/components/ui/button";
@@ -8,6 +8,7 @@ import { ArrowLeft, Armchair, ShoppingCart, CreditCard } from "lucide-react";
 import { AIChatbot } from "@/components/AIChatbot";
 import { Navbar } from "@/components/Navbar";
 import { toast } from "sonner";
+import { useAIContext } from "@/contexts/AIContext";
 
 type SeatStatus = "available" | "selected" | "taken";
 
@@ -25,6 +26,14 @@ const Seats = () => {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
   const showtime = searchParams.get("time") || "7:30 PM";
+  const { setCurrentMovieId, setCurrentCinemaId, setSelectedShowtime, setSelectedSeats: setContextSeats } = useAIContext();
+
+  // Update AI context
+  useEffect(() => {
+    if (movieId) setCurrentMovieId(parseInt(movieId));
+    if (cinemaId) setCurrentCinemaId(parseInt(cinemaId));
+    setSelectedShowtime(showtime);
+  }, [movieId, cinemaId, showtime, setCurrentMovieId, setCurrentCinemaId, setSelectedShowtime]);
 
   // Generate mock seats with better grouping
   const generateSeats = (): Seat[] => {
@@ -62,6 +71,11 @@ const Seats = () => {
   const [seats, setSeats] = useState<Seat[]>(generateSeats());
   const selectedSeats = seats.filter((s) => s.status === "selected");
   const totalPrice = selectedSeats.reduce((sum, seat) => sum + seat.price, 0);
+
+  // Update context when seats change
+  useEffect(() => {
+    setContextSeats(selectedSeats.map(s => s.id));
+  }, [selectedSeats.length, setContextSeats]);
 
   const handleSeatClick = (seatId: string) => {
     setSeats((prev) =>
