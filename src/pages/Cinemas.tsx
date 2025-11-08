@@ -70,14 +70,22 @@ const Cinemas = () => {
     <div className="min-h-screen bg-background">
       <Navbar />
       
-      {/* Header */}
-      <motion.div
-        initial={{ opacity: 0, y: -20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.5 }}
-        className="sticky top-16 z-40 bg-background/95 backdrop-blur-sm border-b border-border"
-      >
-        <div className="container mx-auto px-6 py-12">
+      {/* Map Banner */}
+      <div className="w-full h-[400px] relative">
+        <MapView
+          cinemas={cinemas}
+          onMarkerClick={handleMarkerClick}
+        />
+      </div>
+
+      {/* Cinema List */}
+      <div className="container mx-auto px-6 py-12">
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5 }}
+        >
+          <h1 className="text-3xl md:text-4xl font-display font-bold mb-6">Nearby Cinemas</h1>
           <motion.div variants={containerVariants} initial="hidden" animate="visible" className="space-y-6">
             {cinemas.map((cinema) => (
               <motion.div key={cinema.id} variants={itemVariants}>
@@ -121,10 +129,10 @@ const Cinemas = () => {
               </motion.div>
             ))}
           </motion.div>
-        </div>
+        </motion.div>
+      </div>
 
-        <AIChatbot />
-      </motion.div>
+      <AIChatbot />
     </div>
   );
   };
