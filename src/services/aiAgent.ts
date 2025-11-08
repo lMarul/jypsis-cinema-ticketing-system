@@ -211,9 +211,55 @@ export async function callOpenAI(
   context: AIContext
 ): Promise<{ response: string; actions: AIAction[] }> {
   const apiKey = import.meta.env.VITE_GEMINI_API_KEY;
-  
-  if (!apiKey || apiKey === 'your-gemini-api-key-here') {
-    throw new Error("Gemini API key not configured. Please add VITE_GEMINI_API_KEY to your .env file.");
+  const useMock = (import.meta.env.VITE_USE_MOCK_AI === "true") || !apiKey || apiKey === 'your-gemini-api-key-here';
+
+  // If explicitly configured to use a mock AI, or if the API key is missing,
+  // return a safe mocked assistant response so the app remains functional.
+  if (useMock) {
+    // Simple mock "agent" that can perform a few actions locally based on the last user message.
+    const lastUser = [...messages].reverse().find(m => m.role === 'user')?.content || messages[messages.length - 1]?.content || '';
+    const actions: AIAction[] = [];
+    let responseText = `Hi — I'm QELV (mock assistant). I can't contact the AI service right now, but I can still help you navigate the app.`;
+
+    try {
+      const lower = lastUser.toLowerCase();
+
+      // Match: "take me to <movie title>"
+      const takeMatch = lower.match(/take me to (.+)/i);
+      if (takeMatch) {
+        const movieTitle = takeMatch[1].trim();
+        actions.push({ type: 'select_movie', params: { movieTitle } });
+        responseText = `Okay — taking you to cinemas showing "${movieTitle}".`;
+        return Promise.resolve({ response: responseText, actions });
+      }
+
+      // Match: "show me <genre> movies" or "show me action movies"
+      const showMatch = lower.match(/show me (.+) movies/i);
+      if (showMatch) {
+        const genre = showMatch[1].trim();
+        actions.push({ type: 'filter_movies', params: { genre } });
+        responseText = `Showing movies in the \"${genre}\" genre.`;
+        return Promise.resolve({ response: responseText, actions });
+      }
+
+      // Match: "book <n> <tier> seats" e.g., "book 2 vip seats"
+      const bookMatch = lower.match(/book\s+(\d+)\s+(vip|premium|regular)?/i);
+      if (bookMatch) {
+        const quantity = parseInt(bookMatch[1], 10);
+        const tier = bookMatch[2] || undefined;
+        actions.push({ type: 'select_seats', params: { quantity, tier } });
+        responseText = `I will select ${quantity} ${tier || ''} seat(s) for you.`;
+        return Promise.resolve({ response: responseText, actions });
+      }
+
+      // Default mock reply when no action detected
+      responseText += ` Try: \"Show me action movies\" or \"Take me to Inside Out 2\".`;
+    } catch (err) {
+      // If parsing fails, fall back to a friendly response
+      responseText = `Hi — I'm QELV (mock assistant). I can't contact the AI service right now, but I can still help you navigate the app.`;
+    }
+
+    return Promise.resolve({ response: responseText, actions });
   }
 
   // Build system prompt with current context
