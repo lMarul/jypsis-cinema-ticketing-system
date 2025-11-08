@@ -56,7 +56,7 @@ const Movies = () => {
         >
           <div className="text-center px-6 z-10">
             <h1 className="text-5xl md:text-7xl font-display font-bold mb-4 text-gradient">
-              CinemaBook
+              JYPTIC
             </h1>
             <p className="text-lg md:text-xl text-muted-foreground max-w-2xl mx-auto">
               Experience movies like never before. Book your perfect seat with AI assistance.
